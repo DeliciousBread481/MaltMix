@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 主色调：网易云红 -->
+    <color name="primary">#C20C0C</color>
+    <color name="primary_variant">#A00A0A</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <!-- 辅助色：B站粉蓝 -->
+    <color name="secondary">#00A1D6</color>
+    <color name="secondary_variant">#0088B3</color>
+    <color name="on_secondary">#FFFFFF</color>
+
+    <!-- 背景色 -->
+    <color name="background">#F5F5F5</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- 文字色 -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+
+    <!-- 保留默认色（防止其他文件引用报错） -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
