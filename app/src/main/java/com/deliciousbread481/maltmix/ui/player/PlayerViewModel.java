@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.media3.common.Player;
 
 import com.deliciousbread481.maltmix.api.BiliApi;
+import com.deliciousbread481.maltmix.api.BiliAuthManager;
 import com.deliciousbread481.maltmix.model.Song;
 import com.deliciousbread481.maltmix.player.PlayerManager;
 
@@ -100,22 +101,65 @@ public class PlayerViewModel extends AndroidViewModel {
     }
 
     private void fetchBiliAndPlay(Song song) {
-        String[] parts = song.getId().split(":");
-        if (parts.length < 2) {
-            errorMessage.setValue("歌曲 ID 格式错误");
+        String id = song.getId();
+        if (id == null || id.isEmpty()) {
+            errorMessage.setValue("歌曲 ID 为空");
             return;
         }
-        String bvid = parts[0];
-        long cid;
-        try {
-            cid = Long.parseLong(parts[1]);
-        } catch (NumberFormatException e) {
-            errorMessage.setValue("cid 解析失败");
+
+        String bvid;
+        long cid = 0;
+        int colonIdx = id.indexOf(':');
+        if (colonIdx >= 0) {
+            bvid = id.substring(0, colonIdx);
+            try {
+                cid = Long.parseLong(id.substring(colonIdx + 1));
+            } catch (NumberFormatException ignored) {
+                cid = 0;
+            }
+        } else {
+            bvid = id;
+        }
+
+        if (bvid.isEmpty()) {
+            errorMessage.setValue("歌曲 ID 格式错误：" + id);
             return;
         }
 
         isLoading.setValue(true);
-        BiliApi.fetchAudioUrl(bvid, cid, new BiliApi.AudioUrlCallback() {
+        BiliAuthManager auth = new BiliAuthManager(getApplication());
+
+        if (cid > 0) {
+            doFetchAudio(song, bvid, cid, auth);
+        } else {
+            BiliApi.fetchVideoInfo(bvid,
+                    auth.getSessdata(), auth.getImgKey(), auth.getSubKey(),
+                    new BiliApi.VideoInfoCallback() {
+                @Override
+                public void onSuccess(String title, String cover, long fetchedCid) {
+                    if (fetchedCid <= 0) {
+                        isLoading.setValue(false);
+                        errorMessage.setValue("无法获取视频 cid：" + bvid);
+                        return;
+                    }
+                    doFetchAudio(song, bvid, fetchedCid, auth);
+                }
+
+                @Override
+                public void onFailure(String error) {
+                    isLoading.setValue(false);
+                    errorMessage.setValue(error);
+                }
+            });
+        }
+    }
+
+    private void doFetchAudio(Song song, String bvid, long cid,
+                              BiliAuthManager auth) {
+        BiliApi.fetchAudioUrl(bvid, cid,
+                auth.getSessdata(), auth.getImgKey(), auth.getSubKey(),
+                auth.getBuvid3(),
+                new BiliApi.AudioUrlCallback() {
             @Override
             public void onSuccess(String audioUrl) {
                 isLoading.setValue(false);
@@ -133,10 +177,21 @@ public class PlayerViewModel extends AndroidViewModel {
 
     public void addBiliSong(String bvid) {
         isLoading.setValue(true);
-        BiliApi.fetchVideoInfo(bvid, new BiliApi.VideoInfoCallback() {
+
+        BiliAuthManager auth = new BiliAuthManager(getApplication());
+
+        BiliApi.fetchVideoInfo(bvid,
+                auth.getSessdata(), auth.getImgKey(), auth.getSubKey(),
+                new BiliApi.VideoInfoCallback() {
             @Override
             public void onSuccess(String title, String cover, long cid) {
                 isLoading.setValue(false);
+                if (cid <= 0) {
+                    errorMessage.setValue("无法获取 cid，video info 返回 cid=0"
+                            + "\n\n标题：" + title
+                            + "\n封面：" + cover);
+                    return;
+                }
                 String id = bvid + ":" + cid;
                 List<Song> list = playlist.getValue();
                 if (list != null) {
@@ -183,7 +238,7 @@ public class PlayerViewModel extends AndroidViewModel {
             }
         }
     }
-    
+
     public void setPlaylist(List<Song> songs) {
         List<Song> list = new ArrayList<>(songs);
         playlist.setValue(list);

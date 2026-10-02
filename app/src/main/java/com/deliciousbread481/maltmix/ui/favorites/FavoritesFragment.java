@@ -86,7 +86,7 @@ public class FavoritesFragment extends Fragment {
 
     private void showCreateDialog() {
         EditText input = new EditText(requireContext());
-        input.setHint("例如：好听的歌单");
+        input.setHint("例如：最好的歌单");
 
         new AlertDialog.Builder(requireContext())
                 .setTitle("新建收藏夹")
@@ -123,7 +123,8 @@ public class FavoritesFragment extends Fragment {
 
         BiliApi.fetchUserInfo(sessdata, new BiliApi.UserInfoCallback() {
             @Override
-            public void onSuccess(long mid, String uname, String face) {
+            public void onSuccess(long mid, String uname, String face,
+                                  String imgKey, String subKey) {
                 BiliApi.fetchFavFolders(mid, sessdata, new BiliApi.FavFolderCallback() {
                     @Override
                     public void onSuccess(List<FavFolder> folders) {
@@ -133,8 +134,8 @@ public class FavoritesFragment extends Fragment {
                             biliContainer.removeAllViews();
                             for (FavFolder f : folders) {
                                 View item = createFolderItem(
-                                    f.getTitle(), f.getMediaCount(), false,
-                                    "bilibili", f.getId());
+                                        f.getTitle(), f.getMediaCount(), false,
+                                        "bilibili", f.getId());
                                 biliContainer.addView(item);
                             }
                         });
@@ -165,9 +166,9 @@ public class FavoritesFragment extends Fragment {
     // ---------- 列表项生成 ----------
 
     private View createFolderItem(String name, int count, boolean deletable,
-                              String source, long mediaId) {
+                                  String source, long mediaId) {
         View item = LayoutInflater.from(requireContext())
-            .inflate(R.layout.item_folder, null);
+                .inflate(R.layout.item_folder, null);
 
         TextView nameView = item.findViewById(R.id.textFolderName);
         TextView countView = item.findViewById(R.id.textFolderCount);
@@ -179,15 +180,15 @@ public class FavoritesFragment extends Fragment {
         if (deletable) {
             deleteBtn.setVisibility(View.VISIBLE);
             deleteBtn.setOnClickListener(v ->
-                new AlertDialog.Builder(requireContext())
-                    .setTitle("删除收藏夹")
-                    .setMessage("确定删除“" + name + "”吗？")
-                    .setPositiveButton("删除", (d, w) -> {
-                        localStore.removeFolder(name);
-                        refreshLocalFolders();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show());
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("删除收藏夹")
+                            .setMessage("确定删除“" + name + "”吗？")
+                            .setPositiveButton("删除", (d, w) -> {
+                                localStore.removeFolder(name);
+                                refreshLocalFolders();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show());
         } else {
             deleteBtn.setVisibility(View.GONE);
         }

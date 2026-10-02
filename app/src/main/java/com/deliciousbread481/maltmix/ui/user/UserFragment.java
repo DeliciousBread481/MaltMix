@@ -93,7 +93,10 @@ public class UserFragment extends Fragment {
             String sessdata = authManager.getSessdata();
             BiliApi.fetchUserInfo(sessdata, new BiliApi.UserInfoCallback() {
                 @Override
-                public void onSuccess(long mid, String uname, String face) {
+                public void onSuccess(long mid, String uname, String face,
+                                      String imgKey, String subKey) {
+                    authManager.setWbiKeys(imgKey, subKey);
+
                     if (isAdded()) {
                         requireActivity().runOnUiThread(() -> {
                             unameText.setText("用户名：" + uname + "  UID：" + mid);
