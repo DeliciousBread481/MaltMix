@@ -26,6 +26,9 @@
             android:name=".ui.user.BiliLoginActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.user.NeteaseLoginActivity"
+            android:exported="false" />    
+        <activity
             android:name=".ui.favorites.FavDetailActivity"
             android:exported="false" />    
         </application>

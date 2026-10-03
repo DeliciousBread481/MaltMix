@@ -19,7 +19,10 @@ import androidx.fragment.app.Fragment;
 import com.deliciousbread481.maltmix.R;
 import com.deliciousbread481.maltmix.api.BiliApi;
 import com.deliciousbread481.maltmix.api.BiliAuthManager;
+import com.deliciousbread481.maltmix.api.NeteaseApiClient;
+import com.deliciousbread481.maltmix.api.NeteaseAuthManager;
 import com.deliciousbread481.maltmix.model.FavFolder;
+import com.deliciousbread481.maltmix.model.NeteasePlaylist;
 import com.deliciousbread481.maltmix.util.LocalFavStore;
 import com.deliciousbread481.maltmix.util.LogDialog;
 
@@ -29,10 +32,19 @@ public class FavoritesFragment extends Fragment {
 
     private LocalFavStore localStore;
     private BiliAuthManager biliAuth;
+    private NeteaseAuthManager neteaseAuth;
 
     private LinearLayout localContainer;
     private LinearLayout biliContainer;
+    private LinearLayout neteaseContainer;
+
     private TextView biliStatus;
+    private TextView neteaseStatus;
+    private TextView biliToggleIcon;
+    private TextView neteaseToggleIcon;
+
+    private boolean biliExpanded = false;
+    private boolean neteaseExpanded = false;
 
     @Nullable
     @Override
@@ -48,13 +60,30 @@ public class FavoritesFragment extends Fragment {
 
         localStore = new LocalFavStore(requireContext());
         biliAuth = new BiliAuthManager(requireContext());
+        neteaseAuth = new NeteaseAuthManager(requireContext());
 
         localContainer = view.findViewById(R.id.localFoldersContainer);
         biliContainer = view.findViewById(R.id.biliFoldersContainer);
+        neteaseContainer = view.findViewById(R.id.neteaseFoldersContainer);
+
         biliStatus = view.findViewById(R.id.biliStatus);
+        neteaseStatus = view.findViewById(R.id.neteaseStatus);
+        biliToggleIcon = view.findViewById(R.id.biliToggleIcon);
+        neteaseToggleIcon = view.findViewById(R.id.neteaseToggleIcon);
 
         Button btnCreate = view.findViewById(R.id.btnCreateFolder);
         btnCreate.setOnClickListener(v -> showCreateDialog());
+
+        // 折叠开关
+        View biliHeader = view.findViewById(R.id.biliHeader);
+        biliHeader.setOnClickListener(v -> toggleBili());
+
+        View neteaseHeader = view.findViewById(R.id.neteaseHeader);
+        neteaseHeader.setOnClickListener(v -> toggleNetease());
+
+        // 初始状态
+        updateBiliVisibility();
+        updateNeteaseVisibility();
     }
 
     @Override
@@ -62,6 +91,29 @@ public class FavoritesFragment extends Fragment {
         super.onResume();
         refreshLocalFolders();
         refreshBiliFolders();
+        refreshNeteaseFolders();
+    }
+
+    // ---------- 折叠开关 ----------
+
+    private void toggleBili() {
+        biliExpanded = !biliExpanded;
+        updateBiliVisibility();
+    }
+
+    private void updateBiliVisibility() {
+        biliContainer.setVisibility(biliExpanded ? View.VISIBLE : View.GONE);
+        biliToggleIcon.setText(biliExpanded ? "▲" : "▼");
+    }
+
+    private void toggleNetease() {
+        neteaseExpanded = !neteaseExpanded;
+        updateNeteaseVisibility();
+    }
+
+    private void updateNeteaseVisibility() {
+        neteaseContainer.setVisibility(neteaseExpanded ? View.VISIBLE : View.GONE);
+        neteaseToggleIcon.setText(neteaseExpanded ? "▲" : "▼");
     }
 
     // ---------- 本地收藏夹 ----------
@@ -114,11 +166,11 @@ public class FavoritesFragment extends Fragment {
         biliContainer.removeAllViews();
 
         if (!biliAuth.isLoggedIn()) {
-            biliStatus.setText("未登录，请先在“用户”页绑定 B站账号");
+            biliStatus.setText("未登录");
             return;
         }
 
-        biliStatus.setText("正在加载收藏夹...");
+        biliStatus.setText("加载中...");
         String sessdata = biliAuth.getSessdata();
 
         BiliApi.fetchUserInfo(sessdata, new BiliApi.UserInfoCallback() {
@@ -130,7 +182,7 @@ public class FavoritesFragment extends Fragment {
                     public void onSuccess(List<FavFolder> folders) {
                         if (!isAdded()) return;
                         requireActivity().runOnUiThread(() -> {
-                            biliStatus.setText("共 " + folders.size() + " 个收藏夹");
+                            biliStatus.setText(folders.size() + " 个");
                             biliContainer.removeAllViews();
                             for (FavFolder f : folders) {
                                 View item = createFolderItem(
@@ -156,7 +208,61 @@ public class FavoritesFragment extends Fragment {
             public void onFailure(String error) {
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
-                    biliStatus.setText("登录信息失效，请重新绑定");
+                    biliStatus.setText("登录失效");
+                    LogDialog.error(requireContext(), error);
+                });
+            }
+        });
+    }
+
+    // ---------- 网易云收藏夹 ----------
+
+    private void refreshNeteaseFolders() {
+        neteaseContainer.removeAllViews();
+
+        if (!neteaseAuth.isLoggedIn()) {
+            neteaseStatus.setText("未登录");
+            return;
+        }
+
+        neteaseStatus.setText("加载中...");
+
+        NeteaseApiClient.getAccount(new NeteaseApiClient.AccountCallback() {
+            @Override
+            public void onSuccess(long uid) {
+                NeteaseApiClient.getUserPlaylists(uid,
+                        new NeteaseApiClient.PlaylistsCallback() {
+                    @Override
+                    public void onSuccess(List<NeteasePlaylist> playlists) {
+                        if (!isAdded()) return;
+                        requireActivity().runOnUiThread(() -> {
+                            neteaseStatus.setText(playlists.size() + " 个");
+                            neteaseContainer.removeAllViews();
+                            for (NeteasePlaylist p : playlists) {
+                                View item = createFolderItem(
+                                        p.getName(), p.getTrackCount(), false,
+                                        "netease", p.getId());
+                                neteaseContainer.addView(item);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(String error) {
+                        if (!isAdded()) return;
+                        requireActivity().runOnUiThread(() -> {
+                            neteaseStatus.setText("加载失败");
+                            LogDialog.error(requireContext(), error);
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(String error) {
+                if (!isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    neteaseStatus.setText("登录失效");
                     LogDialog.error(requireContext(), error);
                 });
             }

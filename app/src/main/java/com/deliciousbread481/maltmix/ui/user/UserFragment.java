@@ -17,15 +17,20 @@ import androidx.fragment.app.Fragment;
 
 import com.deliciousbread481.maltmix.api.BiliApi;
 import com.deliciousbread481.maltmix.api.BiliAuthManager;
+import com.deliciousbread481.maltmix.api.NeteaseAuthManager;
 import com.deliciousbread481.maltmix.util.LogDialog;
 
 public class UserFragment extends Fragment {
 
     private BiliAuthManager authManager;
+    private NeteaseAuthManager neteaseAuthManager;
 
     private TextView statusText;
     private TextView unameText;
     private Button biliButton;
+
+    private TextView neteaseStatus;
+    private Button btnNetease;
 
     private final ActivityResultLauncher<Intent> biliLoginLauncher =
             registerForActivityResult(
@@ -36,10 +41,20 @@ public class UserFragment extends Fragment {
                         }
                     });
 
+    private final ActivityResultLauncher<Intent> neteaseLoginLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            refreshNeteaseUi();
+                        }
+                    });
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         authManager = new BiliAuthManager(requireContext());
+        neteaseAuthManager = new NeteaseAuthManager(requireContext());
 
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -50,6 +65,7 @@ public class UserFragment extends Fragment {
         title.setTextSize(24);
         layout.addView(title);
 
+        // ---------- B站 ----------
         statusText = new TextView(requireContext());
         statusText.setTextSize(16);
         statusText.setPadding(0, 24, 0, 8);
@@ -57,7 +73,7 @@ public class UserFragment extends Fragment {
 
         unameText = new TextView(requireContext());
         unameText.setTextSize(14);
-        unameText.setPadding(0, 0, 0, 24);
+        unameText.setPadding(0, 0, 0, 16);
         layout.addView(unameText);
 
         biliButton = new Button(requireContext());
@@ -72,8 +88,22 @@ public class UserFragment extends Fragment {
         });
         layout.addView(biliButton);
 
-        Button btnNetease = new Button(requireContext());
-        btnNetease.setText("绑定网易云音乐账号");
+        // ---------- 网易云 ----------
+        neteaseStatus = new TextView(requireContext());
+        neteaseStatus.setTextSize(16);
+        neteaseStatus.setPadding(0, 24, 0, 8);
+        layout.addView(neteaseStatus);
+
+        btnNetease = new Button(requireContext());
+        btnNetease.setOnClickListener(v -> {
+            if (neteaseAuthManager.isLoggedIn()) {
+                neteaseAuthManager.logout();
+                refreshNeteaseUi();
+            } else {
+                neteaseLoginLauncher.launch(
+                        new Intent(requireContext(), NeteaseLoginActivity.class));
+            }
+        });
         layout.addView(btnNetease);
 
         return layout;
@@ -83,6 +113,7 @@ public class UserFragment extends Fragment {
     public void onResume() {
         super.onResume();
         refreshUi();
+        refreshNeteaseUi();
     }
 
     private void refreshUi() {
@@ -118,6 +149,16 @@ public class UserFragment extends Fragment {
             statusText.setText("B站：未登录");
             unameText.setText("");
             biliButton.setText("绑定哔哩哔哩账号");
+        }
+    }
+
+    private void refreshNeteaseUi() {
+        if (neteaseAuthManager.isLoggedIn()) {
+            neteaseStatus.setText("网易云：已登录");
+            btnNetease.setText("退出网易云登录");
+        } else {
+            neteaseStatus.setText("网易云：未登录");
+            btnNetease.setText("绑定网易云音乐账号");
         }
     }
 }

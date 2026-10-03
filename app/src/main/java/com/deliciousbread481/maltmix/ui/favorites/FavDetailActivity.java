@@ -17,7 +17,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.deliciousbread481.maltmix.R;
 import com.deliciousbread481.maltmix.api.BiliApi;
 import com.deliciousbread481.maltmix.api.BiliAuthManager;
+import com.deliciousbread481.maltmix.api.NeteaseApiClient;
 import com.deliciousbread481.maltmix.model.FavVideo;
+import com.deliciousbread481.maltmix.model.NeteaseSong;
 import com.deliciousbread481.maltmix.model.Song;
 import com.deliciousbread481.maltmix.ui.player.PlayerViewModel;
 import com.deliciousbread481.maltmix.util.LocalFavStore;
@@ -122,6 +124,8 @@ public class FavDetailActivity extends AppCompatActivity {
             adapter.setSongs(localStore.getSongs(folderName));
         } else if ("bilibili".equals(source)) {
             loadBiliVideos();
+        } else if ("netease".equals(source)) {
+            loadNeteaseSongs();
         }
     }
 
@@ -155,6 +159,32 @@ public class FavDetailActivity extends AppCompatActivity {
         });
     }
 
+    private void loadNeteaseSongs() {
+        NeteaseApiClient.getPlaylistDetail(mediaId,
+                new NeteaseApiClient.PlaylistDetailCallback() {
+            @Override
+            public void onSuccess(List<NeteaseSong> neteaseSongs) {
+                List<Song> songs = new ArrayList<>();
+                for (NeteaseSong ns : neteaseSongs) {
+                    songs.add(new Song(
+                            ns.getId(),
+                            ns.getName(),
+                            ns.getArtist(),
+                            ns.getCoverUrl(),
+                            null,
+                            "netease"
+                    ));
+                }
+                adapter.setSongs(songs);
+            }
+
+            @Override
+            public void onFailure(String error) {
+                LogDialog.error(FavDetailActivity.this, error);
+            }
+        });
+    }
+
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -167,7 +197,6 @@ public class FavDetailActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        // 本地收藏夹退出时保存当前顺序
         if ("local".equals(source) && adapter != null) {
             localStore.saveSongs(folderName, adapter.getSongs());
         }

@@ -10,6 +10,8 @@ import androidx.media3.common.Player;
 
 import com.deliciousbread481.maltmix.api.BiliApi;
 import com.deliciousbread481.maltmix.api.BiliAuthManager;
+import com.deliciousbread481.maltmix.api.NeteaseApiClient;
+import com.deliciousbread481.maltmix.api.NeteaseAuthManager;
 import com.deliciousbread481.maltmix.model.Song;
 import com.deliciousbread481.maltmix.player.PlayerManager;
 
@@ -39,6 +41,12 @@ public class PlayerViewModel extends AndroidViewModel {
     public PlayerViewModel(@NonNull Application application) {
         super(application);
         playerManager = PlayerManager.getInstance(application);
+
+        // 冷启动恢复网易云 Cookie
+        NeteaseAuthManager na = new NeteaseAuthManager(application);
+        if (na.isLoggedIn()) {
+            NeteaseApiClient.setCookie(na.getCookie());
+        }
 
         playerManager.getPlayer().addListener(new Player.Listener() {
             @Override
@@ -95,10 +103,34 @@ public class PlayerViewModel extends AndroidViewModel {
 
         if ("bilibili".equals(song.getSource())) {
             fetchBiliAndPlay(song);
+        } else if ("netease".equals(song.getSource())) {
+            fetchNeteaseAndPlay(song);
         } else {
             errorMessage.setValue("暂不支持的音源：" + song.getSource());
         }
     }
+
+    // ---------- 网易云 ----------
+
+    private void fetchNeteaseAndPlay(Song song) {
+        isLoading.setValue(true);
+        NeteaseApiClient.getSongUrl(song.getId(), new NeteaseApiClient.SongUrlCallback() {
+            @Override
+            public void onSuccess(String url) {
+                isLoading.setValue(false);
+                song.setPlayUrl(url);
+                playerManager.playUrl(url);
+            }
+
+            @Override
+            public void onFailure(String error) {
+                isLoading.setValue(false);
+                errorMessage.setValue(error);
+            }
+        });
+    }
+
+    // ---------- B站 ----------
 
     private void fetchBiliAndPlay(Song song) {
         String id = song.getId();
@@ -130,7 +162,7 @@ public class PlayerViewModel extends AndroidViewModel {
         BiliAuthManager auth = new BiliAuthManager(getApplication());
 
         if (cid > 0) {
-            doFetchAudio(song, bvid, cid, auth);
+            doFetchBiliAudio(song, bvid, cid, auth);
         } else {
             BiliApi.fetchVideoInfo(bvid,
                     auth.getSessdata(), auth.getImgKey(), auth.getSubKey(),
@@ -142,7 +174,7 @@ public class PlayerViewModel extends AndroidViewModel {
                         errorMessage.setValue("无法获取视频 cid：" + bvid);
                         return;
                     }
-                    doFetchAudio(song, bvid, fetchedCid, auth);
+                    doFetchBiliAudio(song, bvid, fetchedCid, auth);
                 }
 
                 @Override
@@ -154,8 +186,8 @@ public class PlayerViewModel extends AndroidViewModel {
         }
     }
 
-    private void doFetchAudio(Song song, String bvid, long cid,
-                              BiliAuthManager auth) {
+    private void doFetchBiliAudio(Song song, String bvid, long cid,
+                                  BiliAuthManager auth) {
         BiliApi.fetchAudioUrl(bvid, cid,
                 auth.getSessdata(), auth.getImgKey(), auth.getSubKey(),
                 auth.getBuvid3(),
@@ -239,6 +271,7 @@ public class PlayerViewModel extends AndroidViewModel {
         }
     }
 
+    /** 用一批歌曲替换整个收听列表 */
     public void setPlaylist(List<Song> songs) {
         List<Song> list = new ArrayList<>(songs);
         playlist.setValue(list);
