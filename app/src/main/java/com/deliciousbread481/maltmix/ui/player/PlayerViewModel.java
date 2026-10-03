@@ -12,11 +12,13 @@ import com.deliciousbread481.maltmix.api.BiliApi;
 import com.deliciousbread481.maltmix.api.BiliAuthManager;
 import com.deliciousbread481.maltmix.api.NeteaseApiClient;
 import com.deliciousbread481.maltmix.api.NeteaseAuthManager;
-import com.deliciousbread481.maltmix.model.Song;
-import com.deliciousbread481.maltmix.player.PlayerManager;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.deliciousbread481.maltmix.model.Song;  
+import com.deliciousbread481.maltmix.player.PlayerManager;  
+import com.deliciousbread481.maltmix.util.PlaylistStore;  
+  
+import java.util.ArrayList;  
+import java.util.List;  
+import java.util.Random;
 
 public class PlayerViewModel extends AndroidViewModel {
 
@@ -29,33 +31,56 @@ public class PlayerViewModel extends AndroidViewModel {
         return instance;
     }
 
-    private final MutableLiveData<Song> currentSong = new MutableLiveData<>();
-    private final MutableLiveData<List<Song>> playlist = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>(false);
-    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
-
-    private final PlayerManager playerManager;
+    public static final int MODE_SEQUENTIAL = 0;  
+    public static final int MODE_SHUFFLE = 1;  
+    public static final int MODE_REPEAT_ONE = 2;  
+  
+    private final MutableLiveData<Song> currentSong = new MutableLiveData<>();  
+    private final MutableLiveData<List<Song>> playlist = new MutableLiveData<>(new ArrayList<>());  
+    private final MutableLiveData<Boolean> isPlaying = new MutableLiveData<>(false);  
+    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();  
+    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);  
+    private final MutableLiveData<Integer> playMode = new MutableLiveData<>(MODE_SEQUENTIAL);  
+  
+    private final PlayerManager playerManager;  
+    private final Random random = new Random();  
     private int currentIndex = -1;
+    
+    public PlayerManager getPlayerManager() { return playerManager; }
 
     public PlayerViewModel(@NonNull Application application) {
         super(application);
         playerManager = PlayerManager.getInstance(application);
 
-        // 冷启动恢复网易云 Cookie
         NeteaseAuthManager na = new NeteaseAuthManager(application);
         if (na.isLoggedIn()) {
             NeteaseApiClient.setCookie(na.getCookie());
         }
 
-        playerManager.getPlayer().addListener(new Player.Listener() {
-            @Override
-            public void onIsPlayingChanged(boolean playing) {
-                isPlaying.setValue(playing);
-            }
-        });
-
-        playerManager.setErrorListener(message -> errorMessage.postValue(message));
+        playerManager.getPlayer().addListener(new Player.Listener() {  
+            @Override  
+            public void onIsPlayingChanged(boolean playing) {  
+                isPlaying.setValue(playing);  
+            }  
+  
+            @Override  
+            public void onPlaybackStateChanged(int playbackState) {  
+                if (playbackState == Player.STATE_ENDED) {  
+                    playNextInternal(true);  
+                }  
+            }  
+        });  
+  
+        playerManager.setErrorListener(message -> errorMessage.postValue(message));  
+  
+        playMode.setValue(PlaylistStore.loadMode(application));  
+        List<Song> saved = PlaylistStore.loadList(application);  
+        if (!saved.isEmpty()) {  
+            playlist.setValue(saved);  
+            int idx = PlaylistStore.loadIndex(application);  
+            currentIndex = (idx >= 0 && idx < saved.size()) ? idx : 0;  
+            currentSong.setValue(saved.get(currentIndex));  
+        }
     }
 
     public LiveData<Song> getCurrentSong() { return currentSong; }
@@ -77,23 +102,67 @@ public class PlayerViewModel extends AndroidViewModel {
         playerManager.togglePlayPause();
     }
 
-    public void playNext() {
-        List<Song> list = playlist.getValue();
-        if (list == null || list.isEmpty()) return;
-        currentIndex = (currentIndex + 1) % list.size();
-        playSong(list.get(currentIndex));
-    }
-
-    public void playPrevious() {
-        List<Song> list = playlist.getValue();
-        if (list == null || list.isEmpty()) return;
-        currentIndex = (currentIndex - 1 + list.size()) % list.size();
-        playSong(list.get(currentIndex));
+    public void playNext() {  
+        playNextInternal(false);  
+    }  
+  
+    private void playNextInternal(boolean autoAdvance) {  
+        List<Song> list = playlist.getValue();  
+        if (list == null || list.isEmpty()) return;  
+  
+        Integer mode = playMode.getValue();  
+        if (mode != null && mode == MODE_REPEAT_ONE && autoAdvance) {  
+            playSong(list.get(Math.max(currentIndex, 0)));  
+            return;  
+        }  
+        if (mode != null && mode == MODE_SHUFFLE) {  
+            if (list.size() == 1) {  
+                playSong(list.get(0));  
+            } else {  
+                int next;  
+                do {  
+                    next = random.nextInt(list.size());  
+                } while (next == currentIndex);  
+                currentIndex = next;  
+                playSong(list.get(currentIndex));  
+            }  
+            return;  
+        }  
+        currentIndex = (currentIndex + 1) % list.size();  
+        playSong(list.get(currentIndex));  
+    }  
+  
+    public void playPrevious() {  
+        List<Song> list = playlist.getValue();  
+        if (list == null || list.isEmpty()) return;  
+        Integer mode = playMode.getValue();  
+        if (mode != null && mode == MODE_SHUFFLE && list.size() > 1) {  
+            int prev;  
+            do {  
+                prev = random.nextInt(list.size());  
+            } while (prev == currentIndex);  
+            currentIndex = prev;  
+        } else {  
+            currentIndex = (currentIndex - 1 + list.size()) % list.size();  
+        }  
+        playSong(list.get(currentIndex));  
+    }  
+  
+    public LiveData<Integer> getPlayMode() { return playMode; }  
+  
+    public void cyclePlayMode() {  
+        Integer mode = playMode.getValue();  
+        int next = ((mode != null ? mode : MODE_SEQUENTIAL) + 1) % 3;  
+        playMode.setValue(next);  
+        PlaylistStore.saveMode(getApplication(), next);  
     }
 
     public void playSong(Song song) {
         List<Song> list = playlist.getValue();
-        if (list != null) currentIndex = list.indexOf(song);
+        if (list != null) {  
+            currentIndex = list.indexOf(song);  
+            PlaylistStore.saveIndex(getApplication(), currentIndex);  
+        }
         currentSong.setValue(song);
 
         if (song.getPlayUrl() != null && !song.getPlayUrl().isEmpty()) {
@@ -249,7 +318,8 @@ public class PlayerViewModel extends AndroidViewModel {
     public void addSong(Song song) {
         List<Song> list = new ArrayList<>(playlist.getValue());
         list.add(song);
-        playlist.setValue(list);
+        playlist.setValue(list);  
+        PlaylistStore.saveList(getApplication(), list);
         if (list.size() == 1) {
             currentSong.setValue(song);
         }
@@ -258,7 +328,8 @@ public class PlayerViewModel extends AndroidViewModel {
     public void removeSong(Song song) {
         List<Song> list = new ArrayList<>(playlist.getValue());
         list.remove(song);
-        playlist.setValue(list);
+        playlist.setValue(list);  
+        PlaylistStore.saveList(getApplication(), list);
 
         Song current = currentSong.getValue();
         if (current != null && current.equals(song)) {
@@ -270,11 +341,11 @@ public class PlayerViewModel extends AndroidViewModel {
             }
         }
     }
-
-    /** 用一批歌曲替换整个收听列表 */
+    
     public void setPlaylist(List<Song> songs) {
         List<Song> list = new ArrayList<>(songs);
-        playlist.setValue(list);
+        playlist.setValue(list);  
+        PlaylistStore.saveList(getApplication(), list);
         if (!list.isEmpty()) {
             currentIndex = 0;
             currentSong.setValue(list.get(0));

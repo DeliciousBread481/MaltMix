@@ -68,7 +68,8 @@ public class FavDetailActivity extends AppCompatActivity {
 
         RecyclerView recycler = findViewById(R.id.recyclerFavDetail);
         recycler.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new FavDetailAdapter(this);
+        adapter = new FavDetailAdapter(this);  
+        adapter.setFolderName("local".equals(source) ? folderName : null);
         recycler.setAdapter(adapter);
 
         ItemTouchHelper touchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
@@ -97,6 +98,7 @@ public class FavDetailActivity extends AppCompatActivity {
 
         Button btnSetPlaylist = findViewById(R.id.btnSetPlaylist);
         Button btnReorder = findViewById(R.id.btnReorder);
+        Button btnReverse = findViewById(R.id.btnReverse);
 
         playerViewModel = PlayerViewModel.getInstance(getApplication());
 
@@ -110,14 +112,21 @@ public class FavDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "已设为收听列表", Toast.LENGTH_SHORT).show();
         });
 
-        if ("local".equals(source)) {
-            btnReorder.setVisibility(Button.VISIBLE);
-            btnReorder.setOnClickListener(v -> {
-                boolean isReorder = adapter.toggleReorderMode();
-                btnReorder.setText(isReorder ? "完成" : "调整顺序");
-            });
-        } else {
-            btnReorder.setVisibility(Button.GONE);
+        if ("local".equals(source)) {  
+            btnReorder.setVisibility(Button.VISIBLE);  
+            btnReverse.setVisibility(Button.VISIBLE);  
+            btnReorder.setOnClickListener(v -> {  
+                boolean isReorder = adapter.toggleReorderMode();  
+                btnReorder.setText(isReorder ? "完成" : "调整顺序");  
+            });  
+            btnReverse.setOnClickListener(v -> {  
+                adapter.reverseAll();  
+                localStore.saveSongs(folderName, adapter.getSongs());  
+                Toast.makeText(this, "已倒换顺序", Toast.LENGTH_SHORT).show();  
+            });  
+        } else {  
+            btnReorder.setVisibility(Button.GONE);  
+            btnReverse.setVisibility(Button.GONE);  
         }
 
         if ("local".equals(source)) {

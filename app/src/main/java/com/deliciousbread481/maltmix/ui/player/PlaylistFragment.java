@@ -8,7 +8,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.viewpager2.widget.ViewPager2;  
 import com.deliciousbread481.maltmix.databinding.FragmentPlaylistBinding;
+import com.deliciousbread481.maltmix.R;
 
 public class PlaylistFragment extends Fragment {
 
@@ -32,7 +34,15 @@ public class PlaylistFragment extends Fragment {
         playerViewModel = PlayerViewModel.getInstance(
             requireActivity().getApplication());
 
-        adapter = new PlaylistAdapter(playerViewModel);
+        adapter = new PlaylistAdapter(playerViewModel, () -> {  
+            Fragment parent = getParentFragment();  
+            if (parent != null && parent.getView() != null) {  
+                ViewPager2 vp = parent.getView().findViewById(R.id.viewPager);  
+                if (vp != null) {  
+                    vp.setCurrentItem(0, true);  
+                }  
+            }  
+        });
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerView.setAdapter(adapter);
         

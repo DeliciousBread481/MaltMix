@@ -33,4 +33,9 @@ public class LogDialog {
     public static void error(Context context, String message) {
         show(context, "错误", message);
     }
+
+    public static void toast(Context context, String message) {  
+        if (context == null) return;  
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();  
+    }
 }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>  
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"  
+    android:layout_width="match_parent"  
+    android:layout_height="wrap_content"  
+    android:orientation="vertical"  
+    android:paddingBottom="24dp">  
+  
+    <TextView  
+        android:id="@+id/sheetTitle"  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:gravity="center"  
+        android:padding="16dp"  
+        android:text="当前歌曲"  
+        android:textSize="14sp"  
+        android:textColor="#888888" />  
+  
+    <LinearLayout  
+        android:id="@+id/optionAddToFolder"  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:background="?attr/selectableItemBackground"  
+        android:clickable="true"  
+        android:focusable="true"  
+        android:gravity="center_vertical"  
+        android:orientation="horizontal"  
+        android:padding="16dp">  
+  
+        <ImageView  
+            android:layout_width="24dp"  
+            android:layout_height="24dp"  
+            android:layout_marginEnd="16dp"  
+            android:src="@drawable/ic_folder" />  
+  
+        <TextView  
+            android:layout_width="wrap_content"  
+            android:layout_height="wrap_content"  
+            android:text="收藏到指定收藏夹"  
+            android:textSize="16sp" />  
+    </LinearLayout>  
+</LinearLayout>

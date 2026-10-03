@@ -39,10 +39,6 @@ public class NeteaseAuthManager {
         return cookie != null && !cookie.isEmpty();
     }
 
-    /**
-     * 退出登录：清空本地存储，同时清空 WebView CookieManager 里
-     * music.163.com 域的 Cookie，避免下次打开登录页时被误判为已登录。
-     */
     public void logout() {
         prefs.edit().clear().apply();
         NeteaseApiClient.setCookie("");
@@ -51,7 +47,6 @@ public class NeteaseAuthManager {
 
     private void clearWebViewCookies() {
         CookieManager cm = CookieManager.getInstance();
-        // 逐个删除 music.163.com 域下的关键 Cookie
         String[] keys = {"MUSIC_U", "__csrf", "NMTID", "__remember_me",
                 "osver", "deviceId", "appver", "versioncode",
                 "mobilename", "buildver", "resolution", "os",

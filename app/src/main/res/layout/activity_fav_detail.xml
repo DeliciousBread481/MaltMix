@@ -11,7 +11,8 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
         app:titleTextColor="@android:color/white"
-        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel" />
+        app:navigationIcon="@drawable/ic_close"  
+        app:navigationIconTint="@android:color/white" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerFavDetail"
@@ -19,26 +20,41 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp">
-
-        <Button
-            android:id="@+id/btnSetPlaylist"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="设为收听列表" />
-
-        <Button
-            android:id="@+id/btnReorder"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="调整顺序"
-            android:visibility="gone" />
+    <LinearLayout  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:orientation="horizontal"  
+        android:padding="12dp">  
+  
+        <com.google.android.material.button.MaterialButton  
+            android:id="@+id/btnSetPlaylist"  
+            android:layout_width="0dp"  
+            android:layout_height="wrap_content"  
+            android:layout_weight="1"  
+            android:text="设为收听列表"  
+            app:cornerRadius="24dp" />  
+  
+        <com.google.android.material.button.MaterialButton  
+            android:id="@+id/btnReorder"  
+            android:layout_width="0dp"  
+            android:layout_height="wrap_content"  
+            android:layout_marginStart="8dp"  
+            android:layout_weight="1"  
+            android:text="调整顺序"  
+            app:cornerRadius="24dp"
+            android:visibility="gone"  
+            app:icon="@drawable/ic_drag_handle"  
+            app:iconGravity="textStart"  
+            app:iconPadding="4dp"  
+            app:iconTint="@android:color/white" />
+        <com.google.android.material.button.MaterialButton   
+            android:id="@+id/btnReverse"  
+            android:layout_width="0dp"  
+            android:layout_height="wrap_content"  
+            android:layout_marginStart="8dp"  
+            android:layout_weight="1"  
+            android:text="快捷倒换"  
+            app:cornerRadius="24dp"
+            android:visibility="gone" />    
     </LinearLayout>
 </LinearLayout>

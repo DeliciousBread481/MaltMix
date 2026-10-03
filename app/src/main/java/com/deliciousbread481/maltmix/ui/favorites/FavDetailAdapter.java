@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -19,8 +18,10 @@ import com.deliciousbread481.maltmix.R;
 import com.deliciousbread481.maltmix.model.Song;
 import com.deliciousbread481.maltmix.util.LocalFavStore;
 import com.deliciousbread481.maltmix.util.LogDialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;  
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class FavDetailAdapter extends RecyclerView.Adapter<FavDetailAdapter.ViewHolder> {
@@ -28,12 +29,17 @@ public class FavDetailAdapter extends RecyclerView.Adapter<FavDetailAdapter.View
     private final Context context;
     private final LocalFavStore localStore;
     private final List<Song> songs = new ArrayList<>();
+    private String folderName;
     private boolean reorderMode = false;
     private ItemTouchHelper touchHelper;
 
     public FavDetailAdapter(Context context) {
         this.context = context;
         this.localStore = new LocalFavStore(context);
+    }
+    
+    public void setFolderName(String folderName) {  
+        this.folderName = folderName;  
     }
 
     public void attachTouchHelper(ItemTouchHelper helper) {
@@ -61,6 +67,11 @@ public class FavDetailAdapter extends RecyclerView.Adapter<FavDetailAdapter.View
         Song s = songs.remove(from);
         songs.add(to, s);
         notifyItemMoved(from, to);
+    }
+    
+    public void reverseAll() {  
+        Collections.reverse(songs);  
+        notifyDataSetChanged();  
     }
 
     @NonNull
@@ -91,21 +102,51 @@ public class FavDetailAdapter extends RecyclerView.Adapter<FavDetailAdapter.View
         } else {
             h.btnDrag.setVisibility(View.GONE);
             h.btnMenu.setVisibility(View.VISIBLE);
-            h.btnMenu.setOnClickListener(v -> showMenu(v, song));
+            h.btnMenu.setOnClickListener(v -> showMenu(h, song));
         }
     }
 
-    private void showMenu(View anchor, Song song) {
-        PopupMenu popup = new PopupMenu(context, anchor);
-        popup.getMenu().add("收藏到其他收藏夹");
-        popup.setOnMenuItemClickListener(item -> {
-            if ("收藏到其他收藏夹".equals(item.getTitle().toString())) {
-                showAddToFolderDialog(song);
-                return true;
-            }
-            return false;
-        });
-        popup.show();
+    private void showMenu(ViewHolder h, Song song) {  
+        BottomSheetDialog sheet = new BottomSheetDialog(context);  
+        View content = LayoutInflater.from(context)  
+                .inflate(R.layout.bottom_sheet_song_options, null);  
+        sheet.setContentView(content);  
+  
+        TextView title = content.findViewById(R.id.sheetTitle);  
+        title.setText(song.getTitle() + " - " + song.getArtist());  
+  
+        content.findViewById(R.id.optionAddToFolder)  
+                .setOnClickListener(v -> {  
+                    sheet.dismiss();  
+                    showAddToFolderDialog(song);  
+                });  
+  
+        View optionRemove = content.findViewById(R.id.optionRemove);  
+        if (folderName == null) {  
+            optionRemove.setVisibility(View.GONE);  
+        } else {  
+            optionRemove.setOnClickListener(v -> {  
+                sheet.dismiss();  
+                new AlertDialog.Builder(context)  
+                        .setTitle("删除曲目")  
+                        .setMessage("确定从「" + folderName + "」中删除\n"  
+                                + song.getTitle() + " 吗？")  
+                        .setPositiveButton("删除", (d, w) -> removeSong(h, song))  
+                        .setNegativeButton("取消", null)  
+                        .show();  
+            });  
+        }  
+  
+        sheet.show();  
+    }  
+  
+    private void removeSong(ViewHolder h, Song song) {  
+        int pos = h.getBindingAdapterPosition();  
+        if (pos == RecyclerView.NO_POSITION) return;  
+        songs.remove(pos);  
+        notifyItemRemoved(pos);  
+        localStore.removeSong(folderName, song);  
+        LogDialog.toast(context, "已删除「" + song.getTitle() + "」");  
     }
 
     private void showAddToFolderDialog(Song song) {
@@ -117,14 +158,14 @@ public class FavDetailAdapter extends RecyclerView.Adapter<FavDetailAdapter.View
         String[] arr = folders.toArray(new String[0]);
         new AlertDialog.Builder(context)
                 .setTitle("收藏到")
-                .setItems(arr, (d, which) -> {
-                    String folderName = arr[which];
-                    boolean ok = localStore.addSong(folderName, song);
-                    if (ok) {
-                        LogDialog.warn(context, "已加入「" + folderName + "」");
-                    } else {
-                        LogDialog.warn(context, "「" + folderName + "」里已有此歌曲");
-                    }
+                .setItems(arr, (d, which) -> {  
+                    String folderName = arr[which];  
+                    boolean ok = localStore.addSong(folderName, song);  
+                    if (ok) {  
+                        LogDialog.toast(context, "已加入「" + folderName + "」");  
+                    } else {  
+                        LogDialog.toast(context, "「" + folderName + "」里已有此歌曲");  
+                    }  
                 })
                 .setNegativeButton("取消", null)
                 .show();

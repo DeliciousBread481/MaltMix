@@ -27,11 +27,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;  
 import okhttp3.Response;  
   
-public class NeteaseApiClient {  
+public class NeteaseApiClient {
   
     private static final String TAG = "MaltMix";  
   
-    // 读接口主域；失败时可用 interface3 兜底  
     private static final String API_URL = "https://interface.music.163.com";  
     private static final String API_URL_FALLBACK = "https://interface3.music.163.com";  
   
@@ -57,8 +56,6 @@ public class NeteaseApiClient {
         cookie = c == null ? "" : c;  
         Log.d(TAG, "已设置 eapi Cookie，长度 = " + cookie.length());  
     }  
-  
-    // ---------- 回调接口 ----------  
   
     public interface SongUrlCallback {  
         void onSuccess(String url);  
@@ -231,11 +228,6 @@ public class NeteaseApiClient {
         void onFailure(String error);  
     }  
   
-    /**  
-     * 对齐 Ncrust RetrofitClient.eapiPost：  
-     * 直接把登录 Cookie 放 Cookie 头，payload 不做 header 注入。  
-     * 空响应时自动用 interface3 域名重试一次。  
-     */  
     private static void sendEapiRequest(String eapiPath, Map<String, String> payload,  
                                         EapiResponseCallback callback) {  
         doEapi(API_URL + eapiPath, payload, callback, true);  
@@ -279,7 +271,6 @@ public class NeteaseApiClient {
                 }  
   
                 if (body.isEmpty() && canRetry) {  
-                    // 换 interface3 域名重试一次  
                     String fallbackUrl = url.replace(API_URL, API_URL_FALLBACK);  
                     Log.w(TAG, "空响应，改用 " + fallbackUrl + " 重试");  
                     doEapi(fallbackUrl, payload, callback, false);  
@@ -310,10 +301,6 @@ public class NeteaseApiClient {
   
     // ---------- 写接口专用（点赞/收藏等，对齐 eapiPostOfficial） ----------  
   
-    /**  
-     * 官方客户端指纹版：设备字段以 Cookie 形式发送，同时写入加密 body 的 header。  
-     * 读接口不要用这个，仅写接口（如 /eapi/radio/like）需要。  
-     */  
     private static void sendEapiRequestOfficial(String eapiPath, Map<String, String> payload,  
                                                 EapiResponseCallback callback) {  
         try {  
@@ -335,7 +322,6 @@ public class NeteaseApiClient {
             if (mus.containsKey("MUSIC_U")) header.put("MUSIC_U", mus.get("MUSIC_U"));  
             if (mus.containsKey("MUSIC_A")) header.put("MUSIC_A", mus.get("MUSIC_A"));  
   
-            // 设备字段以 URL 编码的 Cookie 串形式发送  
             StringBuilder cookieStr = new StringBuilder();  
             for (Map.Entry<String, String> e : header.entrySet()) {  
                 if (cookieStr.length() > 0) cookieStr.append(";");  
@@ -344,7 +330,6 @@ public class NeteaseApiClient {
                         .append(URLEncoder.encode(e.getValue(), "UTF-8"));  
             }  
   
-            // header 同时写入加密 payload  
             Map<String, String> data = new LinkedHashMap<>(payload);  
             data.put("header", new JSONObject(header).toString());  
   

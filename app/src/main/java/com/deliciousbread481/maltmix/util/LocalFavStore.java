@@ -24,8 +24,6 @@ public class LocalFavStore {
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    // ---------- 收藏夹管理 ----------
-
     public List<String> getFolderNames() {
         List<String> names = new ArrayList<>();
         String json = prefs.getString(KEY_FOLDERS, "[]");
@@ -95,7 +93,7 @@ public class LocalFavStore {
                 return false;
             }
         }
-        songs.add(song);
+        songs.add(0,song);
         saveSongs(folderName, songs);
         return true;
     }

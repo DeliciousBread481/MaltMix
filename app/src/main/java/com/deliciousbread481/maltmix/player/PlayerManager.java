@@ -30,24 +30,45 @@ public class PlayerManager {
                 + "AppleWebKit/537.36 (KHTML, like Gecko) "
                 + "Chrome/120.0.0.0 Safari/537.36");
 
-        DefaultHttpDataSource.Factory httpFactory = new DefaultHttpDataSource.Factory()
-                .setDefaultRequestProperties(headers)
-                .setAllowCrossProtocolRedirects(true);
+        DefaultHttpDataSource.Factory httpFactory = new DefaultHttpDataSource.Factory()  
+                .setDefaultRequestProperties(headers)  
+                .setAllowCrossProtocolRedirects(true)  
+                .setConnectTimeoutMs(10000)  
+                .setReadTimeoutMs(15000);
 
         player = new ExoPlayer.Builder(context.getApplicationContext())
                 .setMediaSourceFactory(new ProgressiveMediaSource.Factory(httpFactory))
                 .build();
 
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onPlayerError(@NonNull PlaybackException error) {
-                if (errorListener != null) {
-                    errorListener.onError("ExoPlayer 播放错误\n"
-                            + "错误码: " + error.errorCode + "\n"
-                            + "信息: " + error.getMessage() + "\n"
-                            + "原因: " + error.getCause());
-                }
-            }
+        player.addListener(new Player.Listener() {  
+            private int retryCount = 0;  
+  
+            @Override  
+            public void onPlaybackStateChanged(int playbackState) {  
+                if (playbackState == Player.STATE_READY) {  
+                    retryCount = 0;  
+                }  
+            }  
+  
+            @Override  
+            public void onPlayerError(@NonNull PlaybackException error) {  
+                if (error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED  
+                        || error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE  
+                        || error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS) {  
+                    if (retryCount < 1 && player.getMediaItemCount() > 0) {  
+                        retryCount++;  
+                        player.prepare();  
+                        player.play();  
+                        return;  
+                    }  
+                }  
+                if (errorListener != null) {  
+                    errorListener.onError("ExoPlayer 播放错误\n"  
+                            + "错误码: " + error.errorCode + "\n"  
+                            + "信息: " + error.getMessage() + "\n"  
+                            + "原因: " + error.getCause());  
+                }  
+            }  
         });
     }
 
@@ -85,8 +106,9 @@ public class PlayerManager {
         }
     }
 
-    public void stop() {
-        player.stop();
+    public void stop() {  
+        player.stop();  
+        player.clearMediaItems();  
     }
 
     public void release() {

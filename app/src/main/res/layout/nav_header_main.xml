@@ -1,35 +1,46 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="160dp"
-    android:background="?attr/colorPrimary"
-    android:gravity="bottom"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <ImageView
-        android:id="@+id/nav_header_avatar"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:src="@mipmap/ic_launcher_round"
-        android:contentDescription="用户头像" />
-
-    <TextView
-        android:id="@+id/nav_header_username"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="未登录"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/nav_header_subtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="点击绑定账号"
-        android:textColor="#CCFFFFFF"
-        android:textSize="12sp" />
+<?xml version="1.0" encoding="utf-8"?>  
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"  
+    android:layout_width="match_parent"  
+    android:layout_height="wrap_content"  
+    android:background="?attr/colorPrimary"  
+    android:gravity="bottom"  
+    android:orientation="vertical"  
+    android:paddingStart="16dp"  
+    android:paddingEnd="16dp"  
+    android:paddingTop="48dp"  
+    android:paddingBottom="16dp">  
+  
+    <ImageView  
+        android:id="@+id/nav_header_avatar"  
+        android:layout_width="56dp"  
+        android:layout_height="56dp"  
+        android:contentDescription="用户头像"  
+        android:src="@drawable/ic_account_circle" />  
+  
+    <TextView  
+        android:id="@+id/nav_header_username"  
+        android:layout_width="match_parent"  
+        android:layout_height="wrap_content"  
+        android:layout_marginTop="8dp"  
+        android:text="未登录"  
+        android:textColor="@android:color/white"  
+        android:textSize="16sp"  
+        android:textStyle="bold" />  
+  
+    <TextView  
+        android:id="@+id/nav_header_bili_status"  
+        android:layout_width="wrap_content"  
+        android:layout_height="wrap_content"  
+        android:layout_marginTop="4dp"  
+        android:text="哔哩哔哩：未登录"  
+        android:textColor="#CCFFFFFF"  
+        android:textSize="12sp" />  
+  
+    <TextView  
+        android:id="@+id/nav_header_netease_status"  
+        android:layout_width="wrap_content"  
+        android:layout_height="wrap_content"  
+        android:text="网易云音乐：未登录"  
+        android:textColor="#CCFFFFFF"  
+        android:textSize="12sp" />  
 </LinearLayout>

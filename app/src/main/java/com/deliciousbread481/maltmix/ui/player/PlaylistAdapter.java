@@ -15,6 +15,7 @@ import com.deliciousbread481.maltmix.model.Song;
 public class PlaylistAdapter extends ListAdapter<Song, PlaylistAdapter.ViewHolder> {
 
     private final PlayerViewModel viewModel;
+    private final Runnable onSongClick;
 
     private static final DiffUtil.ItemCallback<Song> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<Song>() {
@@ -30,9 +31,10 @@ public class PlaylistAdapter extends ListAdapter<Song, PlaylistAdapter.ViewHolde
                 }
             };
 
-    public PlaylistAdapter(PlayerViewModel viewModel) {
-        super(DIFF_CALLBACK);
-        this.viewModel = viewModel;
+    public PlaylistAdapter(PlayerViewModel viewModel, Runnable onSongClick) {  
+        super(DIFF_CALLBACK);  
+        this.viewModel = viewModel;  
+        this.onSongClick = onSongClick;  
     }
 
     @NonNull
@@ -56,7 +58,10 @@ public class PlaylistAdapter extends ListAdapter<Song, PlaylistAdapter.ViewHolde
             }
         });
 
-        holder.itemView.setOnClickListener(v -> viewModel.playSong(song));
+        holder.itemView.setOnClickListener(v -> {  
+            viewModel.playSong(song);  
+            if (onSongClick != null) onSongClick.run();  
+        });
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

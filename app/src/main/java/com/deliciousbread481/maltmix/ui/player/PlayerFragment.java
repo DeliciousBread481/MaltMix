@@ -12,24 +12,10 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 import com.deliciousbread481.maltmix.databinding.FragmentPlayerBinding;
-import com.deliciousbread481.maltmix.model.Song;
-
-import java.util.List;
 
 public class PlayerFragment extends Fragment {
 
     private FragmentPlayerBinding binding;
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        PlayerViewModel vm = PlayerViewModel.getInstance(
-            requireActivity().getApplication());
-        List<Song> list = vm.getPlaylist().getValue();
-        if (list == null || list.isEmpty()) {
-            vm.addBiliSong("BV1g5kjBTEV7");
-        }
-    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,

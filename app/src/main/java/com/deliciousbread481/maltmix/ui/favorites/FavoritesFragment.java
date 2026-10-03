@@ -74,14 +74,12 @@ public class FavoritesFragment extends Fragment {
         Button btnCreate = view.findViewById(R.id.btnCreateFolder);
         btnCreate.setOnClickListener(v -> showCreateDialog());
 
-        // 折叠开关
         View biliHeader = view.findViewById(R.id.biliHeader);
         biliHeader.setOnClickListener(v -> toggleBili());
 
         View neteaseHeader = view.findViewById(R.id.neteaseHeader);
         neteaseHeader.setOnClickListener(v -> toggleNetease());
 
-        // 初始状态
         updateBiliVisibility();
         updateNeteaseVisibility();
     }
@@ -93,8 +91,6 @@ public class FavoritesFragment extends Fragment {
         refreshBiliFolders();
         refreshNeteaseFolders();
     }
-
-    // ---------- 折叠开关 ----------
 
     private void toggleBili() {
         biliExpanded = !biliExpanded;

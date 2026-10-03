@@ -408,62 +408,89 @@ public class BiliApi {
         });
     }
 
-    public static void fetchFavVideos(long mediaId, String sessdata,
-                                      FavVideoCallback callback) {
-        String url = "https://api.bilibili.com/x/v3/fav/resource/list"
-                + "?media_id=" + mediaId
-                + "&pn=1&ps=20&order=mtime&type=0&platform=web";
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Referer", REFERER)
-                .addHeader("User-Agent", UA)
-                .addHeader("Cookie", "SESSDATA=" + sessdata)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                mainHandler.post(() -> callback.onFailure("网络错误：" + e.getMessage()));
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String body = response.body().string();
-                try {
-                    JSONObject json = new JSONObject(body);
-                    int code = json.getInt("code");
-                    if (code != 0) {
-                        String msg = json.optString("message", "未知错误");
-                        mainHandler.post(() -> callback.onFailure(
-                                "B站返回 code=" + code + " message=" + msg
-                                        + "\n原始响应：" + body));
-                        return;
-                    }
-                    JSONObject data = json.getJSONObject("data");
-                    JSONArray medias = data.optJSONArray("medias");
-                    List<com.deliciousbread481.maltmix.model.FavVideo> result
-                            = new ArrayList<>();
-                    if (medias != null) {
-                        for (int i = 0; i < medias.length(); i++) {
-                            JSONObject item = medias.getJSONObject(i);
-                            String bvid = item.optString("bvid", "");
-                            long cid = item.optLong("cid", 0);
-                            String title = item.optString("title", "未知标题");
-                            String cover = item.optString("cover", "");
-                            String upper = item.optJSONObject("upper") != null
-                                    ? item.getJSONObject("upper").optString("name", "未知UP")
-                                    : "未知UP";
-                            int duration = item.optInt("duration", 0);
-                            result.add(new com.deliciousbread481.maltmix.model.FavVideo(
-                                    bvid, cid, title, cover, upper, duration));
-                        }
-                    }
-                    mainHandler.post(() -> callback.onSuccess(result));
-                } catch (Exception e) {
-                    mainHandler.post(() -> callback.onFailure(
-                            "JSON 解析异常：" + e.getMessage() + "\n原始响应：\n" + body));
-                }
-            }
-        });
+    public static void fetchFavVideos(long mediaId, String sessdata,  
+                                      FavVideoCallback callback) {  
+        fetchFavVideosPage(mediaId, sessdata, 1, new ArrayList<>(), callback);  
+    }  
+  
+    private static void fetchFavVideosPage(long mediaId, String sessdata,  
+                                           int pn,  
+                                           List<com.deliciousbread481.maltmix.model.FavVideo> accumulated,  
+                                           FavVideoCallback callback) {  
+        String url = "https://api.bilibili.com/x/v3/fav/resource/list"  
+                + "?media_id=" + mediaId  
+                + "&pn=" + pn + "&ps=20&order=mtime&type=0&platform=web";  
+        Request request = new Request.Builder()  
+                .url(url)  
+                .addHeader("Referer", REFERER)  
+                .addHeader("User-Agent", UA)  
+                .addHeader("Cookie", "SESSDATA=" + sessdata)  
+                .build();  
+  
+        client.newCall(request).enqueue(new Callback() {  
+            @Override  
+            public void onFailure(Call call, IOException e) {  
+                mainHandler.post(() -> {  
+                    if (accumulated.isEmpty()) {  
+                        callback.onFailure("网络错误：" + e.getMessage());  
+                    } else {  
+                        callback.onSuccess(accumulated);  
+                    }  
+                });  
+            }  
+  
+            @Override  
+            public void onResponse(Call call, Response response) throws IOException {  
+                String body = response.body().string();  
+                try {  
+                    JSONObject json = new JSONObject(body);  
+                    int code = json.getInt("code");  
+                    if (code != 0) {  
+                        String msg = json.optString("message", "未知错误");  
+                        mainHandler.post(() -> {  
+                            if (accumulated.isEmpty()) {  
+                                callback.onFailure("B站返回 code=" + code  
+                                        + " message=" + msg + "\n原始响应：" + body);  
+                            } else {  
+                                callback.onSuccess(accumulated);  
+                            }  
+                        });  
+                        return;  
+                    }  
+                    JSONObject data = json.getJSONObject("data");  
+                    JSONArray medias = data.optJSONArray("medias");  
+                    boolean hasMore = data.optBoolean("has_more", false);  
+                    if (medias != null) {  
+                        for (int i = 0; i < medias.length(); i++) {  
+                            JSONObject item = medias.getJSONObject(i);  
+                            String bvid = item.optString("bvid", "");  
+                            long cid = item.optLong("cid", 0);  
+                            String title = item.optString("title", "未知标题");  
+                            String cover = item.optString("cover", "");  
+                            String upper = item.optJSONObject("upper") != null  
+                                    ? item.getJSONObject("upper").optString("name", "未知UP")  
+                                    : "未知UP";  
+                            int duration = item.optInt("duration", 0);  
+                            accumulated.add(new com.deliciousbread481.maltmix.model.FavVideo(  
+                                    bvid, cid, title, cover, upper, duration));  
+                        }  
+                    }  
+                    if (hasMore && medias != null && medias.length() > 0) {  
+                        fetchFavVideosPage(mediaId, sessdata, pn + 1, accumulated, callback);  
+                    } else {  
+                        mainHandler.post(() -> callback.onSuccess(accumulated));  
+                    }  
+                } catch (Exception e) {  
+                    mainHandler.post(() -> {  
+                        if (accumulated.isEmpty()) {  
+                            callback.onFailure("JSON 解析异常：" + e.getMessage()  
+                                    + "\n原始响应：\n" + body);  
+                        } else {  
+                            callback.onSuccess(accumulated);  
+                        }  
+                    });  
+                }  
+            }  
+        });  
     }
 }
